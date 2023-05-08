@@ -20,22 +20,19 @@ from keras import applications
 # Choose what to do
 show_analytics = False
 clear_session()
-environment = ["cluster", "colab"][1]
+environment = ["cluster", "colab"][0]
+#!git clone https://github.com/egasgira/TransferLearning.git # Uncomment this if colab is used
 
 data_dir = os.path.join(os.path.dirname(os.getcwd()), "datasets")
-label_path = ['MAMe_dataset.csv', 'MAMe_toy_dataset.csv'][0]
-
-
-
+label_path = ['MAMe_toy_dataset.csv', 'MAMe_dataset.csv'][1]
 
 
 ##------------------------Preprocess--------------------------------
 if environment == "colab":
   import sys
-  os.system("git clone https://github.com/egasgira/TransferLearning.git")
   sys.path.append('/content/TransferLearning/code')
   import TransferLearning.code.data_reader as data_reader
-  import TransferLearning.code.preprocess as prep
+  import TransferLearning.code.preprocess as preprocess
   data_dir = "/content/TransferLearning/datasets"
 else:
   import data_reader
@@ -94,10 +91,11 @@ from keras.models import Sequential, Model
 from keras.layers import Dense, Activation, Conv2D, MaxPooling2D, Flatten, Dropout
 
 # Base model
-model = applications.VGG16(weights = "imagenet", include_top=False, input_shape = input_shape)
+model = applications.efficientnet_v2.EfficientNetV2M(weights = "imagenet", include_top=False, input_shape = input_shape)
 
 # Freeze the layers which you don't want to train. Here I am freezing the first 10 layers.
-for layer in model.layers[:1]:
+limit_frozen_layers = int(len(model.layers)/3)
+for layer in model.layers[:limit_frozen_layers]:
     layer.trainable = False
 
 #Adding custom Layers 
@@ -110,6 +108,7 @@ predictions = Dense(len(Y_data_train[0]), activation=(tf.nn.softmax))(x)
 
 # creating the final model 
 model = Model(model.input, predictions)
+
 
 '''
 #Two hidden layers
@@ -139,7 +138,6 @@ model.add(Dense(len(Y_data_train[0]), activation=(tf.nn.softmax)))#.shape[1]
 
 #Compile the NN
 model.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accuracy'])
-
 
 #Start training
 es = EarlyStopping(patience=10,  restore_best_weights=True, monitor="val_loss")
