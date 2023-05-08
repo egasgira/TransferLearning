@@ -14,6 +14,7 @@ import sklearn
 from keras.backend import clear_session
 from sklearn.preprocessing import OneHotEncoder
 from keras.utils import to_categorical
+from keras import applications
 
 
 # Choose what to do
@@ -32,10 +33,10 @@ label_path = ['MAMe_toy_dataset.csv', 'MAMe_dataset.csv'][0]
 ##------------------------Preprocess--------------------------------
 if environment == "colab":
   import sys
-  sys.path.append('/content/TL/code')
+  sys.path.append('/content/CNN_assignment/code')
   import CNN_assignment.code.data_reader as data_reader
   import CNN_assignment.code.preprocess as preprocess
-  data_dir = "/content/TL/datasets"
+  data_dir = "/content/CNN_assignment/datasets"
 else:
   import data_reader
   import preprocess
@@ -89,8 +90,28 @@ input_shape = (img_rows, img_cols, channels)
 #X_data_test = X_data_test.reshape(X_data_test.shape[0], img_rows, img_cols, channels)
 
 #Define the NN architecture
-from keras.models import Sequential
+from keras.models import Sequential, Model
 from keras.layers import Dense, Activation, Conv2D, MaxPooling2D, Flatten, Dropout
+
+# Base model
+model = applications.VGG16(weights = "imagenet", include_top=False, input_shape = input_shape)
+
+# Freeze the layers which you don't want to train. Here I am freezing the first 10 layers.
+for layer in model.layers[:1]:
+    layer.trainable = False
+
+#Adding custom Layers 
+x = model.output
+x = Flatten()(x)
+x = Dense(512, activation="relu")(x)
+x = Dropout(0.2)(x)
+x = Dense(512, activation="relu")(x)
+predictions = Dense(len(Y_data_train[0]), activation=(tf.nn.softmax))(x)
+
+# creating the final model 
+model = Model(model.input, predictions)
+
+'''
 #Two hidden layers
 model = Sequential()
 model.add(Conv2D(32, (3, 3), activation='relu',  padding="same"))
@@ -109,6 +130,7 @@ model.add(Flatten())
 model.add(Dense(1000, activation='relu'))
 model.add(Dropout(0.6))
 model.add(Dense(len(Y_data_train[0]), activation=(tf.nn.softmax)))#.shape[1]
+'''
 
 #Model visualization
 #We can plot the model by using the ```plot_model``` function. We need to install *pydot, graphviz and pydot-ng*.
