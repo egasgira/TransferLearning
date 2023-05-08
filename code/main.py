@@ -21,7 +21,6 @@ from keras import applications
 show_analytics = False
 clear_session()
 environment = ["cluster", "colab"][1]
-!git clone https://github.com/egasgira/CNN_assignment.git # Uncomment this if colab is used
 
 data_dir = os.path.join(os.path.dirname(os.getcwd()), "datasets")
 label_path = ['MAMe_dataset.csv', 'MAMe_toy_dataset.csv'][0]
@@ -33,11 +32,11 @@ label_path = ['MAMe_dataset.csv', 'MAMe_toy_dataset.csv'][0]
 ##------------------------Preprocess--------------------------------
 if environment == "colab":
   import sys
-  os.system("git clone https://github.com/egasgira/CNN_assignment.git")
-  sys.path.append('/content/CNN_assignment/code')
-  import CNN_assignment.code.data_reader as data_reader
-  import CNN_assignment.code.preprocess as preprocess
-  data_dir = "/content/CNN_assignment/datasets"
+  os.system("git clone https://github.com/egasgira/TransferLearning.git")
+  sys.path.append('/content/TransferLearning/code')
+  import TransferLearning.code.data_reader as data_reader
+  import TransferLearning.code.preprocess as prep
+  data_dir = "/content/TransferLearning/datasets"
 else:
   import data_reader
   import preprocess
