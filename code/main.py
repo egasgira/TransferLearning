@@ -24,7 +24,7 @@ environment = ["cluster", "colab"][1]
 !git clone https://github.com/egasgira/CNN_assignment.git # Uncomment this if colab is used
 
 data_dir = os.path.join(os.path.dirname(os.getcwd()), "datasets")
-label_path = ['MAMe_toy_dataset.csv', 'MAMe_dataset.csv'][0]
+label_path = ['MAMe_dataset.csv', 'MAMe_toy_dataset.csv'][0]
 
 
 
@@ -33,6 +33,7 @@ label_path = ['MAMe_toy_dataset.csv', 'MAMe_dataset.csv'][0]
 ##------------------------Preprocess--------------------------------
 if environment == "colab":
   import sys
+  os.system("git clone https://github.com/egasgira/CNN_assignment.git")
   sys.path.append('/content/CNN_assignment/code')
   import CNN_assignment.code.data_reader as data_reader
   import CNN_assignment.code.preprocess as preprocess
