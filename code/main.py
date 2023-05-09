@@ -20,16 +20,16 @@ from keras import applications
 # Choose what to do
 show_analytics = False
 clear_session()
-environment = ["cluster", "colab"][0]
-#!git clone https://github.com/egasgira/TransferLearning.git # Uncomment this if colab is used
-
+environment = ["cluster", "colab"][1]
+# you don't need to un-comment cloning
 data_dir = os.path.join(os.path.dirname(os.getcwd()), "datasets")
 label_path = ['MAMe_toy_dataset.csv', 'MAMe_dataset.csv'][1]
-
+batch_size = 64
 
 ##------------------------Preprocess--------------------------------
 if environment == "colab":
   import sys
+  os.system("git clone https://github.com/egasgira/TransferLearning.git")
   sys.path.append('/content/TransferLearning/code')
   import TransferLearning.code.data_reader as data_reader
   import TransferLearning.code.preprocess as preprocess
@@ -41,50 +41,16 @@ else:
 
 dr = data_reader.data_reader(data_dir)
 file_names, y_data, train_val_test_idication, labels = dr.get_data_info(label_path)
-X_data_train, Y_data_train, X_data_val, Y_data_val, X_data_test, Y_data_test = dr.get_data_set(y_data, file_names, train_val_test_idication, data_dir)
+train_generator, val_generator, test_generator = dr.get_data_generator(y_data, file_names, train_val_test_idication, data_dir, batch_size)
 
 
-##------------------------Analysis--------------------------------
-
-# Check sizes of dataset
-print( 'Number of train examples', X_data_train.shape[0])
-print( 'Size of train examples', X_data_train.shape[1:])
-
-if(show_analytics):
-        # Print 10 random images for each class
-        for h in range(0,len(labels),5):
-                fig, axes = plt.subplots(len(labels[h:h+5]), 5, figsize=(30, len(labels[h:h+5]) * 30))
-                for i, label in enumerate(labels[h:h+5]):
-
-                        label_indexes = np.where(Y_data_train == h+i)[0][:5]
-                        for j, indx in enumerate(label_indexes):
-                                axes[i, j].imshow(X_data_train[indx])
-                                axes[i, j].axis("off")
-                                axes[i, j].set_title(f"label: {label}")
-                #plt.tight_layout()
-                plt.show()
-
-        plt.title("Distribution of classes")
-        labs = labels.values
-        data_balance = pd.Series(Y_data_train).value_counts()
-        plt.bar(labs,data_balance)
-        plt.xticks([i for i in range(len(labs))], labs, rotation='vertical')
-        plt.show()
 
 ##------------------------Training--------------------------------
 
-# Normalize data
-
-X_data_train, Y_data_train = preprocess.preprocess(X_data_train, Y_data_train)
-X_data_val, Y_data_val = preprocess.preprocess(X_data_val, Y_data_val)
-X_data_test, Y_data_test = preprocess.preprocess(X_data_test, Y_data_test)
 
 #resolution
-img_rows, img_cols, channels = X_data_train.shape[1:][0], X_data_train.shape[1:][1], X_data_train.shape[1:][2]
-input_shape = (img_rows, img_cols, channels)
-#Reshape for input
-#X_data_train = X_data_train.reshape(X_data_train.shape[0], img_rows, img_cols, channels)
-#X_data_test = X_data_test.reshape(X_data_test.shape[0], img_rows, img_cols, channels)
+input_shape = train_generator[0][0].shape[1:]
+
 
 #Define the NN architecture
 from keras.models import Sequential, Model
@@ -104,7 +70,7 @@ x = Flatten()(x)
 x = Dense(512, activation="relu")(x)
 x = Dropout(0.2)(x)
 x = Dense(512, activation="relu")(x)
-predictions = Dense(len(Y_data_train[0]), activation=(tf.nn.softmax))(x)
+predictions = Dense(29, activation=(tf.nn.softmax))(x) 
 
 # creating the final model 
 model = Model(model.input, predictions)
@@ -141,12 +107,13 @@ model.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accurac
 
 #Start training
 es = EarlyStopping(patience=10,  restore_best_weights=True, monitor="val_loss")
-history = model.fit(X_data_train,Y_data_train,batch_size=64,epochs=40,validation_data=(X_data_val, Y_data_val), callbacks=[es])
+history = model.fit(train_generator, batch_size=batch_size,epochs=40,validation_data=val_generator, callbacks=[es]) 
 
 #Evaluate the model with test set
-score = model.evaluate(X_data_test, Y_data_test, verbose=0)
+score = model.evaluate(test_generator, verbose=0)
 print('test loss:', score[0])
 print('test accuracy:', score[1])
+
 
 ##Store Plots
 
