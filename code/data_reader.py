@@ -4,7 +4,8 @@ import pandas as pd
 import numpy as np
 import cv2
 from sklearn.preprocessing import OneHotEncoder
-
+from keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.applications.efficientnet import preprocess_input
 
 class data_reader:
     def __init__(self, dir_path):
