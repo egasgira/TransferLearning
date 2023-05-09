@@ -88,3 +88,61 @@ class data_reader:
         print('\n############### IMAGE FILES ###############\n')
 
         return np.array(X_data_train), np.array(Y_data_train), np.array(X_data_val), np.array(Y_data_val), np.array(X_data_test), np.array(Y_data_test)
+
+    def get_data_generator(self, file_label, file_names, file_subset, dir_path, batch_size):
+
+        print('\n############### IMAGE FILES ###############\n')
+
+        dir_path = os.path.join(dir_path, "data_256")
+        files = os.listdir(dir_path)
+
+        print('data_256 directory uploaded successfully.')
+        print('The data_256 directory has {} images.'.format(len(files)))
+
+        # create dataframes
+        data = {'filename': file_names, 'label': file_label.astype(str), 'subset': file_subset}
+        df = pd.DataFrame(data)
+
+        # Create a OneHotEncoder object
+        encoder = OneHotEncoder()
+
+        # Fit the encoder to the labels
+        encoder.fit(np.array(file_label).reshape(-1, 1))
+
+        # setup generator
+        datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
+
+        # create train, val, and test generators
+        train_generator = datagen.flow_from_dataframe(
+            dataframe=df[df['subset']=='train'],
+            directory=dir_path,
+            x_col='filename',
+            y_col='label',
+            #target_size=(img_rows, img_cols),
+            batch_size=batch_size,
+            class_mode='categorical',
+        )
+
+        val_generator = datagen.flow_from_dataframe(
+            dataframe=df[df['subset']=='val'],
+            directory=dir_path,
+            x_col='filename',
+            y_col='label',
+            #target_size=(img_rows, img_cols),
+            batch_size=batch_size,
+            class_mode='categorical',
+        )
+
+        test_generator = datagen.flow_from_dataframe(
+            dataframe=df[df['subset']=='test'],
+            directory=dir_path,
+            x_col='filename',
+            y_col='label',
+            #target_size=(img_rows, img_cols),
+            batch_size=batch_size,
+            class_mode='categorical',
+        )
+
+        print('\n############### IMAGE FILES ###############\n')
+
+        return train_generator, val_generator, test_generator    
