@@ -179,7 +179,7 @@ with open('results.csv', mode='w') as file:
         kernel = random.choice(['linear', 'poly', 'rbf'])
         subset_size = random.randint(10, 30)
         subset = random.sample(conv_names, subset_size)
-        C = random.uniform(0.1, 1)
+        C = random.uniform(0.3, 1)
         print('\nrun:',i)
         print('Kernel:', kernel)
         print('Subset:', subset)
