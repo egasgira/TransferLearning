@@ -7,6 +7,7 @@ import numpy as np
 import tensorflow as tf
 import cv2
 from tqdm.auto import tqdm
+from keras.layers import Dense, Activation, Conv2D, MaxPooling2D, Flatten, Dropout, BatchNormalization
 
 def full_network_embedding(model, image_paths, batch_size, target_layer_names, input_reshape, stats=None):
     ''' 
