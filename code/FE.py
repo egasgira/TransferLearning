@@ -202,5 +202,5 @@ if __name__ == '__main__':
     print('Done testing SVM on extracted features of test set')
 
     # Print results
-    print(classification_report(test_labels, predicted_labels))
+    print(classification_report(test_labels, predicted_labels, digits=3))
     print(confusion_matrix(test_labels, predicted_labels))
