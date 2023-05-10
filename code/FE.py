@@ -160,7 +160,7 @@ img_width, img_height = 256, 256
 initial_model = applications.efficientnet_v2.EfficientNetV2B2(weights = "imagenet", include_top=False, input_shape=(img_width, img_height, 3))
 conv_names = [layer.name for layer in initial_model.layers if isinstance(layer, Conv2D)]
 conv_names = conv_names[int(len(conv_names)/4):]
-dr = data_reader2(data_dir)
+dr = data_reader(data_dir)
 file_names, y_data, train_val_test_idication, labels = dr.get_data_info(label_path) 
 train_images, train_labels, test_images, test_labels, X_data_test, Y_data_test = dr.get_data_paths(y_data, file_names, train_val_test_idication, data_dir)
 
