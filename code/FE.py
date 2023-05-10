@@ -61,7 +61,7 @@ def full_network_embedding(model, image_paths, batch_size, target_layer_names, i
             except:
                 print(img_path)
         progress_bar.set_postfix_str(f"Images:{idx}/{len(image_paths)}")
-        progress_bar.update(idx)
+        progress_bar.update(1)
 
         feature_vals = get_raw_features(img_batch)
         features_current = np.empty((len(batch_images_path), 0))
