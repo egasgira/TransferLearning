@@ -113,6 +113,18 @@ class data_reader:
         # setup generator
         datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
+        # setup data augmentation for trainingdata
+        train_datagen = ImageDataGenerator(
+        preprocessing_function=preprocess_input,
+        rotation_range=15,       # randomly rotate images in the range (degrees, 0 to 180)
+        width_shift_range=0.15,   # randomly shift images horizontally (fraction of total width)
+        height_shift_range=0.15,  # randomly shift images vertically (fraction of total height)
+        horizontal_flip=True,    # randomly flip images horizontally
+        zoom_range=0.20,           # Randomly zoom image 
+        brightness_range=[0.5,1.4]
+        )
+        print("test2")
+
         # create train, val, and test generators
         train_generator = datagen.flow_from_dataframe(
             dataframe=df[df['subset']=='train'],
@@ -147,3 +159,49 @@ class data_reader:
         print('\n############### IMAGE FILES ###############\n')
 
         return train_generator, val_generator, test_generator    
+    def get_data_paths(self, file_label, file_names, file_subset, dir_path):
+
+            print('\n############### IMAGE FILES ###############\n')
+
+            # Upload the jpeg and jpg files of the directory
+
+            dir_path = os.path.join(dir_path, "data_256")
+            files = os.listdir(dir_path)
+
+            print('data_256 directory uploaded successfully.')
+            print('The data_256 directory has {} images.'.format(len(files)))
+
+            # Create a OneHotEncoder object
+            encoder = OneHotEncoder()
+
+            # Fit the encoder to the labels
+            encoder.fit(np.array(file_label).reshape(-1, 1))
+
+            # Transform the labels to one-hot encoding
+            encoded = encoder.transform(np.array(file_label).reshape(-1, 1)).toarray()
+            Y_data_train = []
+            Y_data_val = []
+            Y_data_test = []
+            X_data_train = []
+            X_data_val = []
+            X_data_test = []
+
+            # Loop through the image files in the directory
+            for image_file, y_label, subset_name in zip(file_names, file_label, file_subset):
+                if subset_name == 'train':
+                    X_data_train.append(os.path.join(dir_path, image_file))
+                    Y_data_train.append(y_label)
+                elif subset_name == 'val':
+                    X_data_val.append(os.path.join(dir_path, image_file))
+                    Y_data_val.append(y_label)
+                else:
+                    X_data_test.append(os.path.join(dir_path, image_file))
+                    Y_data_test.append(y_label)
+
+            
+            
+            
+
+            print('\n############### IMAGE FILES ###############\n')
+
+            return X_data_train, Y_data_train, X_data_val, Y_data_val, X_data_test, Y_data_test
