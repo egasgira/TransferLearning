@@ -3,6 +3,11 @@ import tensorflow as tf
 import cv2
 from tqdm.auto import tqdm
 
+import numpy as np
+import tensorflow as tf
+import cv2
+from tqdm.auto import tqdm
+
 def full_network_embedding(model, image_paths, batch_size, target_layer_names, input_reshape, stats=None):
     ''' 
     Generates the Full-Network embedding[1] of a list of images using a pre-trained
@@ -48,7 +53,7 @@ def full_network_embedding(model, image_paths, batch_size, target_layer_names, i
     features = np.empty((len(image_paths), len_features))
 
     # Extract features
-    progress_bar = tqdm(total=len(image_paths), desc="Extracting", ncols=100)
+    #progress_bar = tqdm(total=len(image_paths), desc="Extracting", ncols=100)
     for idx in range(0, len(image_paths), batch_size):
         batch_images_path = image_paths[idx:idx + batch_size]
         img_batch = np.zeros((len(batch_images_path), *input_reshape, 3), dtype=np.float32)
@@ -60,8 +65,8 @@ def full_network_embedding(model, image_paths, batch_size, target_layer_names, i
                 
             except:
                 print(img_path)
-        progress_bar.set_postfix_str(f"Images:{idx}/{len(image_paths)}")
-        progress_bar.update(1)
+        #progress_bar.set_postfix_str(f"Images:{idx}/{len(image_paths)}")
+        #progress_bar.update(batch_size)
 
         feature_vals = get_raw_features(img_batch)
         features_current = np.empty((len(batch_images_path), 0))
@@ -99,7 +104,7 @@ def full_network_embedding(model, image_paths, batch_size, target_layer_names, i
     #     os.makedirs(outputs_path)
     # np.save(os.path.join(outputs_path, 'fne.npy'), features)
     # np.save(os.path.join(outputs_path, 'stats.npy'), stats)
-    progress_bar.close()
+    #progress_bar.close()
     # Return
     return features, stats
   ##################################### Import dataset ##################################
@@ -144,63 +149,65 @@ else:
   import preprocess
   data_dir = os.path.join(os.path.dirname(os.getcwd()), "datasets")
 
-#################### The main code ####################
-import os
-import tensorflow as tf
-from sklearn.metrics import classification_report, confusion_matrix
+#################### The training loop ####################
+import random
+import csv
+from sklearn.metrics import classification_report
+from sklearn import svm
 
-if __name__ == '__main__':
-    # This shows an example of calling the full_network_embedding method using
-    # the VGG16 architecture pretrained on ILSVRC2012 (aka ImageNet), as
-    # provided by the keras package. Using any other pretrained CNN
-    # model is straightforward.
+img_width, img_height = 256, 256
+initial_model = applications.efficientnet_v2.EfficientNetV2B2(weights = "imagenet", include_top=False, input_shape=(img_width, img_height, 3))
+conv_names = [layer.name for layer in initial_model.layers if isinstance(layer, Conv2D)][int(len(conv_names)/4):]
+dr = data_reader2(data_dir)
+file_names, y_data, train_val_test_idication, labels = dr.get_data_info(label_path) 
+train_images, train_labels, test_images, test_labels, X_data_test, Y_data_test = dr.get_data_paths(y_data, file_names, train_val_test_idication, data_dir)
 
-    # img_width, img_height = 224, 224
-    # initial_model = tf.keras.applications.VGG16(weights="imagenet", include_top=True,
-    #                                             input_shape=(img_width, img_height, 3))
-    # target_layer_names = ['block1_conv1', 'block1_conv2', 'block2_conv1', 'block2_conv2', 'block3_conv1', 'block3_conv2',
-    #                       'block3_conv3', 'block4_conv1', 'block4_conv2', 'block4_conv3', 'block5_conv1', 'block5_conv2',
-    #                       'block5_conv3', 'fc1', 'fc2']
+print('Total train images:', len(train_images), ' with their corresponding', len(train_labels), 'labels')
+print('Total test images:', len(test_images), ' with their corresponding', len(test_labels), 'labels')
 
-    img_width, img_height = 256, 256
-    initial_model = applications.efficientnet_v2.EfficientNetV2B2(weights = "imagenet", include_top=False, input_shape=(img_width, img_height, 3))
-    target_layer_names = ['block4a_expand_conv', 'block4b_expand_conv', 'block4c_expand_conv', 'block4d_expand_conv',
-                      'block5a_expand_conv', 'block5b_expand_conv', 'block5c_expand_conv', 'block5d_expand_conv',
-                      'block6a_expand_conv', 'block6b_expand_conv', 'block6c_expand_conv', 'block5d_expand_conv',
-                      'block7a_expand_conv', 'block7b_expand_conv', 'block7c_expand_conv', 'block5d_expand_conv',]
+batch_size = 32
+input_reshape = (256, 256)
 
-    dr = data_reader2(data_dir)
-    file_names, y_data, train_val_test_idication, labels = dr.get_data_info(label_path) 
-    train_images, train_labels, test_images, test_labels, X_data_test, Y_data_test = dr.get_data_paths(y_data, file_names, train_val_test_idication, data_dir)
+# Set the random seed for reproducibility
+random.seed(42)
+with open('results.csv', mode='w') as file:
+  
+    writer = csv.writer(file)
+    writer.writerow(['Kernel', 'Subset', 'C', 'Accuracy', 'F_1', 'Precision', 'Recall'])
+   
+    for i in range(100):
+        kernel = random.choice(['linear', 'poly', 'rbf'])
+        subset_size = random.randint(10, 30)
+        subset = random.sample(conv_names, subset_size)
+        C = random.uniform(0.1, 1)
+        print('\nrun:',i)
+        print('Kernel:', kernel)
+        print('Subset:', subset)
+        print('C:', C)
+        
+        target_layer_names = subset
+        
+        fne_features, fne_stats_train = full_network_embedding(initial_model, train_images, batch_size,
+                                                              target_layer_names, input_reshape)
+        #print('Done extracting features of training set. Embedding size:', fne_features.shape)
+        #print('Start training SVM')
 
-    print('Total train images:', len(train_images), ' with their corresponding', len(train_labels), 'labels')
-    print('Total test images:', len(test_images), ' with their corresponding', len(test_labels), 'labels')
+        clf = svm.SVC(kernel=kernel, C=C)
+        clf.fit(X=fne_features, y=train_labels)
+        #print('Done training SVM on extracted features of training set')
 
-    # Parameters for the extraction procedure
-    batch_size = 32
-    input_reshape = (256, 256)
-    # Call FNE method on the train set
-    fne_features, fne_stats_train = full_network_embedding(initial_model, train_images, batch_size,
-                                                           target_layer_names, input_reshape)
-    print('Done extracting features of training set. Embedding size:', fne_features.shape)
-    print('Start training SVM')
+        fne_features, fne_stats_train = full_network_embedding(initial_model, test_images, batch_size,
+                                                              target_layer_names, input_reshape, stats=fne_stats_train)
+        #print('Done extracting features of test set')
 
-    from sklearn import svm
+        predicted_labels = clf.predict(fne_features)
+        #print('Done testing SVM on extracted features of test set')
 
-    # Train SVM with the obtained features.
-    clf = svm.LinearSVC()
-    clf.fit(X=fne_features, y=train_labels)
-    print('Done training SVM on extracted features of training set')
+        report = classification_report(test_labels, predicted_labels, digits=3, output_dict=True)
+        accuracy = round(report['accuracy'],3)
+        precision = round(report['weighted avg']['precision'],3)
+        recall = round(report['weighted avg']['recall'],3)
+        F_1 = round(report['weighted avg']['f1-score'],3)
 
-    # Call FNE method on the test set, using stats from training
-    fne_features, fne_stats_train = full_network_embedding(initial_model, test_images, batch_size,
-                                                           target_layer_names, input_reshape, stats=fne_stats_train)
-    print('Done extracting features of test set')
-
-    # Test SVM with the test set.
-    predicted_labels = clf.predict(fne_features)
-    print('Done testing SVM on extracted features of test set')
-
-    # Print results
-    print(classification_report(test_labels, predicted_labels, digits=3))
-    print(confusion_matrix(test_labels, predicted_labels))
+        writer.writerow([kernel, subset, C, accuracy, F_1, precision, recall])
+        print('Accuracy:', accuracy, 'f1-score:', F_1, 'Precision:', precision, 'Recall:', recall)
